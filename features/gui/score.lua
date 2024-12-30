@@ -156,7 +156,7 @@ local function global_score_changed(event)
 
     local count = ScoreTracker.get_for_global('satellites-launched')
 
-    if (count < 10) or ((count < 50) and ((count % 5) == 0)) or ((count < 1000) and ((count % 25) == 0)) or ((count < 10000) and ((count % 100) == 0)) or ((count % 1000) == 0) then
+    if (count < 10) or ((count < 50) and ((count % 5) == 0)) or ((count < 1000) and ((count % 25) == 0)) or ((count < 10000) and ((count % 100) == 0)) or ((count < 100000) and ((count % 1000) == 0))or ((count < 1000000) and ((count % 10000) == 0)) or ((count % 100000) == 0) then
         local message = 'A satellite has been launched! Total count: ' .. count
 
         game.print(message)
