@@ -384,7 +384,7 @@ local function draw_loader_frame_for_player(parent, player)
         }
     end
 
-    if recipes['loader'].enabled then
+    if recipes['loader'] and recipes['loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = player_craft_loader_1,
@@ -394,7 +394,7 @@ local function draw_loader_frame_for_player(parent, player)
         button.locked = true
     end
 
-    if recipes['fast-loader'].enabled then
+    if recipes['fast-loader'] and recipes['fast-loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = player_craft_loader_2,
@@ -404,7 +404,7 @@ local function draw_loader_frame_for_player(parent, player)
         button.locked = true
     end
 
-    if recipes['express-loader'].enabled then
+    if recipes['express-loader'] and recipes['express-loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = player_craft_loader_3,
@@ -451,7 +451,7 @@ local function draw_loader_frame_for_assembly_machine(parent, entity, player)
         }
     end
 
-    if recipes['loader'].enabled then
+    if recipes['loader'] and recipes['loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = machine_craft_loader_1,
@@ -462,7 +462,7 @@ local function draw_loader_frame_for_assembly_machine(parent, entity, player)
         Gui.set_data(button, entity)
     end
 
-    if recipes['fast-loader'].enabled then
+    if recipes['fast-loader'] and recipes['fast-loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = machine_craft_loader_2,
@@ -473,7 +473,7 @@ local function draw_loader_frame_for_assembly_machine(parent, entity, player)
         Gui.set_data(button, entity)
     end
 
-    if recipes['express-loader'].enabled then
+    if recipes['express-loader'] and recipes['express-loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = machine_craft_loader_3,
@@ -484,7 +484,7 @@ local function draw_loader_frame_for_assembly_machine(parent, entity, player)
         Gui.set_data(button, entity)
     end
 
-    if recipes['turbo-loader'].enabled then
+    if recipes['turbo-loader'] and recipes['turbo-loader'].enabled then
         local button = frame.add {
             type = 'choose-elem-button',
             name = machine_craft_loader_4,
