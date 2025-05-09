@@ -55,12 +55,12 @@ local noises = {
 local mixed_ores = { 'iron-ore', 'copper-ore', 'iron-ore', 'stone', 'copper-ore', 'iron-ore', 'copper-ore', 'iron-ore', 'coal', 'iron-ore', 'copper-ore', 'iron-ore', 'stone', 'copper-ore', 'coal'}
 
 if script.active_mods['Krastorio2'] then
-  autoplace_controls['imersite']      = { frequency = 2, richness = 0.6, size = 0.75 }
-  autoplace_controls['mineral-water'] = { frequency = 2, richness = 0.6, size = 0.75 }
-  autoplace_controls['rare-metals']   = { frequency = 2, richness = 0.6, size = 0.85 }
-  blacklisted_resources['imersite'] = true
-  blacklisted_resources['mineral-water'] = true
-  blacklisted_resources['rare-metals'] = true
+  autoplace_controls['kr-imersite']      = { frequency = 2, richness = 0.6, size = 0.75 }
+  autoplace_controls['kr-mineral-water'] = { frequency = 2, richness = 0.6, size = 0.75 }
+  autoplace_controls['kr-rare-metal-ore']   = { frequency = 2, richness = 0.6, size = 0.85 }
+  blacklisted_resources['kr-imersite'] = true
+  blacklisted_resources['kr-mineral-water'] = true
+  blacklisted_resources['kr-rare-metal-ore'] = true
 end
 if script.active_mods['zombiesextended-core'] then
   autoplace_controls['gold-ore']      = { frequency = 0.5, richness = 0.5, size = 0.5  }
