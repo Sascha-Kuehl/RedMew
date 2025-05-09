@@ -167,12 +167,6 @@ function Public.reset()
   ScoreTracker.reset()
   ScoreTracker.set_for_global(Public.scores.rocket_launches.name, this.rockets_to_win)
   ScoreTracker.set_for_global(Public.scores.shop_funds.name, this.spawn_shop_funds)
-
-  if script.active_mods['Krastorio2'] then
-    if remote.interfaces['redmew-data'] and remote.interfaces['redmew-data']['set_spawn_x'] then
-      remote.call( 'redmew-data', 'set_spawn_x', this.right_boundary * 32 + 96 )
-    end
-  end
 end
 
 return Public
