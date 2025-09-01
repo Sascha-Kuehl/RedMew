@@ -604,6 +604,12 @@ storage.config = {
             ['stone'] = 1,
             ['uranium-ore'] = 5,
         },
+    },
+    -- adds a small display always on screen for production stats
+    production_hud = {
+        enabled = true,
+        starting_items = { 'iron-ore', 'copper-ore', 'coal', 'stone' },
+        limit = 40, -- limit of tracked items per-player
     }
 }
 
