@@ -19,7 +19,9 @@ local config = {
         -- controls the Daylight (Default diggy: enabled = true)
         night_time = {
             enabled = true, -- true = No Daylight, false = Day/night circle (Solar panels work)
-            load = function() return require('map_gen.maps.diggy.feature.night_time') end
+            load = function() return require('map_gen.maps.diggy.feature.night_time') end,
+            darkness = false,
+            light_up_starting_position = false
         },
         -- controls setting up the players
         setup_player = {

@@ -8,6 +8,8 @@
 local Event = require 'utils.event'
 local RS = require 'map_gen.shared.redmew_surface'
 
+local config
+
 -- this
 local NightTime = {}
 
@@ -39,7 +41,8 @@ end
 -- assigns the two events to the corresponding local event handlers
 -- @param config table containing the configurations for NightTime.lua
 --
-function NightTime.register()
+function NightTime.register(cfg)
+    config = cfg
     Event.add(defines.events.on_built_entity, on_built_entity)
     Event.add(defines.events.on_research_finished, on_research_finished)
 end
@@ -52,6 +55,21 @@ function NightTime.on_init()
 
     surface.daytime = 0.5
     surface.freeze_daytime = true
+
+    if (config.darkness == true) then
+        surface.brightness_visual_weights = { 1 / 0.85, 1 / 0.85, 1 / 0.85 }
+    end
+
+    if (config.light_up_starting_position == true) then
+        rendering.draw_light
+        {
+            sprite = 'utility/light_medium',
+            scale = 2.5,
+            color = {255,255,255},
+            surface = surface,
+            target = {x = 0, y = 0}
+        }
+    end
 end
 
 return NightTime
