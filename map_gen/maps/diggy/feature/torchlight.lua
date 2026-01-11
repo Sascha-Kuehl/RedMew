@@ -314,8 +314,18 @@ function on_player_joined_game(event)
     update_player_light(player)
 end
 
+function on_pre_player_died(event)
+    local player = game.get_player(event.player_index)
+    player.character_inventory_slots_bonus = player.character_inventory_slots_bonus + 1
+    local torchlight_stack = torchlight_inventory[player.index][1]
+    player.character.get_main_inventory().find_empty_stack().transfer_stack(torchlight_stack)
+end
+
 function on_player_died(event)
     local player = game.get_player(event.player_index)
+
+    player.character_inventory_slots_bonus = player.character_inventory_slots_bonus - 1
+
     local light_data = player_light_data[player.index]
     local position = player.position
 
@@ -462,6 +472,7 @@ function Torchlight.register()
     Event.add(defines.events.on_player_created, on_player_created)
     Event.add(defines.events.on_player_respawned, on_player_respawned)
     Event.add(defines.events.on_player_joined_game, on_player_joined_game)
+    Event.add(defines.events.on_pre_player_died, on_pre_player_died)
     Event.add(defines.events.on_player_died, on_player_died)
     Event.add(defines.events.on_player_main_inventory_changed, on_player_main_inventory_changed)
     Event.add(defines.events.on_tick, on_tick)
