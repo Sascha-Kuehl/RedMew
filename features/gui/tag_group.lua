@@ -38,6 +38,12 @@ local function notify_players(message)
     end
 end
 
+local function compare_tag(player, tag_name)
+    local old_tag = player.tag
+    local new_tag = '[' .. tag_name .. ']'
+    return (old_tag == new_tag) or (old_tag == tag_name)
+end
+
 local function change_player_tag(player, tag_name, silent)
     local old_tag = player.tag
     if tag_name == '' and old_tag == '' then
@@ -98,7 +104,7 @@ local function get_size(players, show_offline)
     local size = 0
 
     if not players then
-        return ''
+        return size
     end
 
     if show_offline then
@@ -112,11 +118,7 @@ local function get_size(players, show_offline)
         end
     end
 
-    if size == 0 then
-        return ''
-    else
-        return ' (' .. size .. ')'
-    end
+    return size
 end
 
 local main_button_name = Gui.uid_name()
@@ -163,8 +165,8 @@ end
 
 local function draw_main_frame_content(parent)
     local player = parent.gui.player
-    local grid = parent.add {type = 'table', column_count = 1}
-    grid.style.vertical_spacing = 0
+    local grid = parent.add { type = 'table', column_count = 1 }
+    grid.style.vertical_spacing = 2
 
     local can_edit = Rank.equal_or_greater_than(player.name, Ranks.regular)
 
@@ -175,8 +177,7 @@ local function draw_main_frame_content(parent)
         local size = get_size(players)
         local path = tag_data.path
 
-        local row = grid.add {type = 'table', column_count = 4}
-        row.style.horizontal_spacing = 0
+        local row = grid.add { type = 'table', column_count = 4 }
 
         if can_edit then
             local edit_button =
@@ -184,11 +185,11 @@ local function draw_main_frame_content(parent)
                 type = 'sprite-button',
                 name = edit_tag_button_name,
                 sprite = 'utility/rename_icon',
-                tooltip = {'tag_group.edit_group'}
+                tooltip = {'tag_group.edit_group'},
+                style = 'crafting_queue_slot',
             }
-            edit_button.style.top_padding = 0
-            edit_button.style.bottom_padding = 0
-            edit_button.style.maximal_height = 32
+            edit_button.visible = can_edit
+            Gui.set_style(edit_button, { padding = 4, size = 32 })
             Gui.set_data(edit_button, tag_name)
         end
 
@@ -197,18 +198,19 @@ local function draw_main_frame_content(parent)
             type = 'sprite-button',
             name = tag_button_name,
             sprite = path,
-            tooltip = tag_name
+            tooltip = tag_name,
+            style = 'slot_button_in_shallow_frame',
+            number = (size > 0) and size or nil,
         }
-
-        tag_button.style.maximal_height = 32
+        Gui.set_style(tag_button, { size = 32 })
         Gui.set_data(tag_button, tag_name)
 
-        local tag_label = row.add {type = 'label', name = tag_label_name, caption = tag_name .. size}
-        tag_label.style.left_padding = 4
-        tag_label.style.minimal_width = 120
-        Gui.set_data(tag_label, {tag_name = tag_name, path = path})
+        local tag_label = row.add { type = 'label', name = tag_label_name, caption = tag_name, style = 'semibold_caption_label' }
+        Gui.set_style(tag_label, { left_padding = 4, minimal_width = 120 })
+        Gui.set_data(tag_label, { tag_name = tag_name, path = path })
 
         local list = row.add {type = 'flow', direction = 'horizontal'}
+        Gui.set_style(list, { minimal_width = 100 })
 
         if players then
             for k, _ in pairs(players) do
@@ -217,13 +219,10 @@ local function draw_main_frame_content(parent)
                     local color = {r = 0.4 + 0.6 * p.color.r, g = 0.4 + 0.6 * p.color.g, b = 0.4 + 0.6 * p.color.b}
 
                     local label = list.add {type = 'label', caption = game.get_player(k).name}
-                    label.style.top_padding = 8
-                    label.style.font_color = color
+                    Gui.set_style(label, { top_padding = 8, font_color = color })
                 end
             end
         end
-
-        list.style.minimal_width = 100
     end
 end
 
@@ -234,20 +233,17 @@ local function draw_main_frame(player)
         caption = {'tag_group.choose_your_tag'},
         direction = 'vertical'
     })
+    Gui.set_style(main_frame, { maximal_height = 320, maximal_width = 500, natural_width = 320 })
 
-    main_frame.style.maximal_height = 500
-    main_frame.style.maximal_width = 500
-    main_frame.style.minimal_width = 320
+    local inner_frame = main_frame.add { type = 'frame', style = 'inside_shallow_frame', name = 'inner' }
 
     local scroll_pane =
-        main_frame.add {
+        inner_frame.add {
         type = 'scroll-pane',
         name = main_frame_content_name,
         vertical_scroll_policy = 'always'
     }
-
-    scroll_pane.style.horizontally_stretchable = true
-    scroll_pane.style.right_padding = 0
+    Gui.set_style(scroll_pane, { horizontally_stretchable = true, padding = 4 })
 
     draw_main_frame_content(scroll_pane)
 
@@ -264,9 +260,7 @@ local function draw_main_frame(player)
     local bottom_flow = main_frame.add {type = 'flow', direction = 'horizontal'}
 
     local left_flow = bottom_flow.add {type = 'flow', direction = 'horizontal'}
-    left_flow.style.horizontal_align = 'left'
-    left_flow.style.horizontally_stretchable = true
-
+    Gui.set_style(left_flow, { horizontal_align = 'left', horizontally_stretchable = true })
     Gui.make_close_button(left_flow, main_button_name)
 
     local right_flow = bottom_flow.add {type = 'flow', direction = 'horizontal'}
@@ -285,7 +279,7 @@ local function redraw_main_frame()
     for _, p in pairs(game.players) do
         local main_frame = Gui.get_left_element(p, main_frame_name)
         if main_frame and main_frame.valid then
-            local content = main_frame[main_frame_content_name]
+            local content = main_frame.inner[main_frame_content_name]
 
             Gui.remove_data_recursively(content)
             content.clear()
@@ -300,11 +294,9 @@ end
 local function redraw_main_button(player, path)
     local main_button = Gui.get_top_element(player, main_button_name)
 
-    if path == '' or path == nil then
-        main_button.sprite = 'utility/pump_cannot_connect_icon'
-        main_button.caption = 'tag'
+    if (path == '') or (path == nil) or (not helpers.is_valid_sprite_path(path)) then
+        main_button.sprite = 'utility/bookmark'
     else
-        main_button.caption = ''
         main_button.sprite = path
     end
 end
@@ -377,6 +369,7 @@ local function draw_create_tag_frame(event, tag_data)
     end
 
     frame = center.add({type = 'frame', name = create_tag_frame_name, caption = frame_caption, direction = 'vertical'})
+    local inner = frame.add { type = 'frame', style = 'inside_shallow_frame_with_padding', direction = 'vertical', name = 'inner' }
 
     if tag_data then
         local text = LocaleBuilder.new({'common.created_by', tag_data.created_by or '<Server>'})
@@ -386,10 +379,10 @@ local function draw_create_tag_frame(event, tag_data)
             text = text:add(', '):add({'common.edited_by', concat(edited_by, ', ')})
         end
 
-        frame.add({type = 'label', caption = text})
+        inner.add({type = 'label', caption = text})
     end
 
-    local main_table = frame.add {type = 'table', column_count = 2}
+    local main_table = inner.add {type = 'table', column_count = 2}
 
     main_table.add {type = 'label', caption = {'common.name'}}
     local name_field = main_table.add {type = 'textfield', text = name}
@@ -420,7 +413,8 @@ local function draw_create_tag_frame(event, tag_data)
         icons_flow.add {
         type = 'choose-elem-button',
         name = create_tag_choose_icon_name,
-        elem_type = spirte_type
+        elem_type = spirte_type,
+        style = 'slot_button_in_shallow_frame',
     }
 
     if path then
@@ -452,11 +446,13 @@ local function draw_create_tag_frame(event, tag_data)
     right_flow.style.horizontal_align = 'right'
 
     if tag_data then
-        local delete_button = right_flow.add {type = 'button', name = delete_tag_name, caption = {'common.delete'}}
+        local delete_button = right_flow.add {type = 'button', name = delete_tag_name, caption = {'common.delete'}, style = 'red_back_button'}
+        Gui.set_style(delete_button, { height = 28, font = 'default-semibold' })
         Gui.set_data(delete_button, frame)
     end
 
-    local confirm_button = right_flow.add {type = 'button', name = confirm_create_tag_name, caption = confirm_caption}
+    local confirm_button = right_flow.add {type = 'button', name = confirm_create_tag_name, caption = confirm_caption, style = 'confirm_button', tooltip = ''}
+    Gui.set_style(confirm_button, { height = 28, font = 'default-semibold' })
     Gui.set_data(confirm_button, frame)
 
     local data = {
@@ -478,12 +474,20 @@ Gui.on_click(main_button_name, toggle)
 Gui.on_click(
     tag_button_name,
     function(event)
+        local player = event.player
         local tag_name = Gui.get_data(event.element)
         local path = event.element.sprite
 
-        if change_player_tag(event.player, tag_name) then
+        if compare_tag(player, tag_name) then
+            if change_player_tag(player, '') then
+                redraw_main_frame()
+            end
+            return
+        end
+
+        if change_player_tag(player, tag_name) then
             redraw_main_frame()
-            redraw_main_button(event.player, path)
+            redraw_main_button(player, path)
         end
     end
 )
