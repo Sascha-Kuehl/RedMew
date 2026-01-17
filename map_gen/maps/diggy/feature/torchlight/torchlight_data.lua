@@ -1,16 +1,7 @@
 local Global = require 'utils.global'
 
---- Maps player index to light data: {remaining_ticks, light_ids}
---- remaining_ticks (number): fuel remaining in ticks
---- light_ids (table): array of 3 rendering IDs {main, effect1, effect2}
 local player_light_data = {}
-
---- Maps corpse id to light data: {remaining_ticks, light_ids}
---- remaining_ticks (number): fuel remaining in ticks
---- light_ids (table): array of 3 rendering IDs {main, effect1, effect2}
 local corpse_light_data = {}
-
---- Maps player index to their torchlight inventory (LuaInventory)
 local torchlight_inventory = {}
 
 Global.register(
@@ -34,10 +25,6 @@ end
 
 function TorchlightData.get_corpse_light_data()
     return corpse_light_data
-end
-
-function TorchlightData.get_torchlight_inventory()
-    return torchlight_inventory
 end
 
 function TorchlightData.set_player_light_data(player_index, data)
@@ -64,22 +51,12 @@ function TorchlightData.get_player_inventory(player_index)
     return torchlight_inventory[player_index]
 end
 
-function TorchlightData.create_player_light_data(light_ids)
-    return {
-        remaining_ticks = 0,
-        light_ids = light_ids
-    }
-end
-
-function TorchlightData.create_corpse_light_data(remaining_ticks, light_ids)
-    return {
-        remaining_ticks = remaining_ticks,
-        light_ids = light_ids
-    }
-end
-
 function TorchlightData.remove_corpse_light_data(corpse_id)
     corpse_light_data[corpse_id] = nil
+end
+
+function TorchlightData.remove_player_light_data(player_index)
+    player_light_data[player_index] = nil
 end
 
 return TorchlightData

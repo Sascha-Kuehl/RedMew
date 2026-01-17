@@ -47,25 +47,22 @@ end
 
 --- Updates the progressbar showing remaining fuel
 --- @param player LuaPlayer player whose GUI to update
---- @param remaining_ticks number of ticks of fuel remaining
+--- @param light_ticks number of ticks of fuel remaining
 --- @param afterburner_ticks number of ticks in the afterburner phase
 --- @param ticks_per_wood number of ticks per unit of wood fuel
-function TorchlightGui.update_torchlight_progressbar(player, remaining_ticks, afterburner_ticks, ticks_per_wood)
+function TorchlightGui.update_torchlight_progressbar(player, light_ticks, light_ticks_total)
     local progressbar = player.gui.screen[torchlight_frame_name][torchlight_flow_name][torchlight_progressbar_name]
 
-    local remaining_percent = (remaining_ticks - afterburner_ticks) / ticks_per_wood
-    if remaining_percent < 0 then
-        remaining_percent = 0
-    end
+    local remaining_ticks = math.max(0, light_ticks_total - light_ticks)
 
-    progressbar.value = remaining_percent
-    progressbar.tooltip = tostring(remaining_percent * ticks_per_wood / 60) .. ' sec'
+    progressbar.value = light_ticks_total ~= 0 and remaining_ticks / light_ticks_total or 0
+    progressbar.tooltip = tostring(remaining_ticks / 60) .. ' sec'
 end
 
 --- Creates the torchlight GUI frame and buttons for the player
 --- @param player LuaPlayer player to create GUI for
 --- @param enabled boolean initial state of the light (enabled or disabled)
-function TorchlightGui.create_gui_button(player, enabled)
+function TorchlightGui.create_gui(player, enabled)
     local frame = player.gui.screen.add {
         type = 'frame',
         name = torchlight_frame_name,

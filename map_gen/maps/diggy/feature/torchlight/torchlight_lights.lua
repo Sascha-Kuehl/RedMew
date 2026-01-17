@@ -52,29 +52,12 @@ function TorchlightLights.create_effect_light_2(target, surface)
     }
 end
 
---- Calculates the intensity of lights based on remaining fuel ticks
---- Intensity starts at 1.0 when there's plenty of fuel, then decreases linearly during the afterburner phase
---- @param remaining_ticks number of ticks remaining
---- @param afterburner_ticks number of ticks in the afterburner phase
---- @return number intensity value from 0.0 to 1.0
-function TorchlightLights.get_intensity(remaining_ticks, afterburner_ticks)
-    if remaining_ticks <= 0 then
-        return 0.0
-    end
-    if remaining_ticks <= afterburner_ticks then
-        return remaining_ticks / afterburner_ticks
-    end
-    return 1.0
-end
-
-function TorchlightLights.update_light(light_data, remaining_ticks, afterburner_ticks)
-    local intensity = TorchlightLights.get_intensity(remaining_ticks, afterburner_ticks)
-
+function TorchlightLights.update_light(light_data, enabled)
     local main_light = rendering.get_object_by_id(light_data.light_ids[1])
     local effect_light_1 = rendering.get_object_by_id(light_data.light_ids[2])
     local effect_light_2 = rendering.get_object_by_id(light_data.light_ids[3])
 
-    if intensity == 0 then
+    if light_data.intensity < 0.001 or ((not enabled or light_data.light_ticks >= light_data.light_ticks_total) and light_data.intensity_per_tick == 0) then
         main_light.visible = false
         effect_light_1.visible = false
         effect_light_2.visible = false
@@ -85,9 +68,9 @@ function TorchlightLights.update_light(light_data, remaining_ticks, afterburner_
     effect_light_1.visible = true
     effect_light_2.visible = true
 
-    main_light.scale = LIGHT_SCALE * intensity
-    effect_light_1.scale = LIGHT_SCALE * LIGHT_SCALE_EFFECT * intensity
-    effect_light_2.scale = LIGHT_SCALE * LIGHT_SCALE_EFFECT * intensity
+    main_light.scale = LIGHT_SCALE * light_data.intensity
+    effect_light_1.scale = LIGHT_SCALE * LIGHT_SCALE_EFFECT * light_data.intensity
+    effect_light_2.scale = LIGHT_SCALE * LIGHT_SCALE_EFFECT * light_data.intensity
 end
 
 function TorchlightLights.destroy_lights(light_ids)
@@ -96,6 +79,42 @@ function TorchlightLights.destroy_lights(light_ids)
         if light_rendering then
             light_rendering.destroy()
         end
+    end
+end
+
+--- Creates light rendering IDs for a target entity
+--- @param target LuaEntity to attach lights to
+--- @param surface LuaSurface to render on
+--- @return table array of light IDs {main_light_id, effect_light_1_id, effect_light_2_id}
+function TorchlightLights.create_light_ids(target, surface)
+    return {
+        TorchlightLights.create_main_light(target, surface).id,
+        TorchlightLights.create_effect_light_1(target, surface).id,
+        TorchlightLights.create_effect_light_2(target, surface).id
+    }
+end
+
+--- Restores missing light rendering objects from stored IDs
+--- @param light_data table containing light_ids array
+--- @param target LuaEntity to attach lights to
+--- @param surface LuaSurface to render on
+function TorchlightLights.restore_missing_lights(light_data, target, surface)
+    local main_light = rendering.get_object_by_id(light_data.light_ids[1])
+    if not main_light then
+        main_light = TorchlightLights.create_main_light(target, surface)
+        light_data.light_ids[1] = main_light.id
+    end
+
+    local effect_light_1 = rendering.get_object_by_id(light_data.light_ids[2])
+    if not effect_light_1 then
+        effect_light_1 = TorchlightLights.create_effect_light_1(target, surface)
+        light_data.light_ids[2] = effect_light_1.id
+    end
+
+    local effect_light_2 = rendering.get_object_by_id(light_data.light_ids[3])
+    if not effect_light_2 then
+        effect_light_2 = TorchlightLights.create_effect_light_2(target, surface)
+        light_data.light_ids[3] = effect_light_2.id
     end
 end
 

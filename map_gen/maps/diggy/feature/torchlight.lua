@@ -5,8 +5,10 @@ local TorchlightGui = require 'map_gen.maps.diggy.feature.torchlight.torchlight_
 local InventoryTransferUtil = require 'map_gen.maps.diggy.feature.torchlight.inventory_transfer_util'
 
 local TICK_INTERVAL = 60
+local FADE_TICK_INTERVAL = 5
+local FADE_OUT_TICKS = 60 * 2
+local FADE_IN_TICKS = 60 * 1
 local TICKS_PER_WOOD = 60 * 60 * 1
-local AFTERBURNER_TICKS = 60 * 17
 local INITIAL_WOOD_COUNT = 10
 
 local Torchlight = {}
@@ -17,7 +19,7 @@ function Torchlight.on_player_created(event)
 
     Torchlight.create_or_restore_player_light(player)
     Torchlight.create_player_torchlight_inventory(player)
-    TorchlightGui.create_gui_button(player, true)
+    TorchlightGui.create_gui(player, true)
     Torchlight.update_player_light(player)
 end
 
@@ -43,10 +45,21 @@ function Torchlight.on_pre_player_died(event)
     local inventory = TorchlightData.get_player_inventory(player.index)
     local torchlight_stack = inventory[1]
     player.character.get_main_inventory().find_empty_stack().transfer_stack(torchlight_stack)
+    TorchlightGui.update_inventory_button(player, inventory)
 end
 
 function Torchlight.build_corpse_id(corpse)
     return tostring(corpse.character_corpse_player_index) .. '-' .. tostring(corpse.character_corpse_tick_of_death)
+end
+
+function Torchlight.find_corpse(player, tick)
+    local corpses = player.surface.find_entities_filtered({name = 'character-corpse', position = player.position})
+    for _, a_corpse in pairs(corpses) do
+        if a_corpse.character_corpse_player_index == player.index and a_corpse.character_corpse_tick_of_death == tick then
+            return a_corpse
+        end
+    end
+    return nil;
 end
 
 function Torchlight.on_player_died(event)
@@ -54,14 +67,7 @@ function Torchlight.on_player_died(event)
 
     player.character_inventory_slots_bonus = player.character_inventory_slots_bonus - 1
 
-    local corpses = player.surface.find_entities_filtered({name = 'character-corpse', position = player.position})
-    local corpse
-    for _, a_corpse in pairs(corpses) do
-        if a_corpse.character_corpse_player_index == player.index and a_corpse.character_corpse_tick_of_death == event.tick then
-            corpse = a_corpse
-            break
-        end
-    end
+    local corpse = Torchlight.find_corpse(player, event.tick)
     if not corpse then
         return
     end
@@ -70,27 +76,83 @@ function Torchlight.on_player_died(event)
     local light_data = TorchlightData.get_player_light_info(player.index)
 
     local corpse_light_data = {
-        remaining_ticks = light_data.remaining_ticks,
-        light_ids = Torchlight.create_light_ids(corpse, player.surface)
+        light_ticks = 0,
+        light_ticks_total = light_data.light_ticks_total - light_data.light_ticks,
+        intensity = light_data.intensity,
+        intensity_per_tick = light_data.intensity_per_tick,
+        light_ids = TorchlightLights.create_light_ids(corpse, player.surface)
     }
     TorchlightData.set_corpse_light_data(corpse_id, corpse_light_data)
-    
-    light_data.remaining_ticks = 0
-    Torchlight.update_player_light(player)
+
+    light_data.light_ticks = 0
+    light_data.light_ticks_total = 0
+    light_data.intensity = 0
+    light_data.intensity_per_tick = 0
+
     Torchlight.update_corpse_light(corpse_id)
     TorchlightGui.set_visible(player, false)
+    TorchlightGui.update_torchlight_progressbar(player, 0, 0)
 end
 
 function Torchlight.on_tick()
-    if game.tick % TICK_INTERVAL ~= 0 then
-        return
+    -- Normal consumption logic
+    if game.tick % TICK_INTERVAL == 0 then
+        Torchlight.update_player_lights_on_tick()
+        Torchlight.update_corpse_lights_on_tick()
     end
-    Torchlight.update_player_lights_on_tick()
-    Torchlight.update_corpse_lights_on_tick()
+    -- Fade animations (faster interval)
+    if game.tick % FADE_TICK_INTERVAL == 0 then
+        Torchlight.update_player_light_fades()
+        Torchlight.update_corpse_light_fades()
+    end
+end
+
+function Torchlight.update_player_light_fades()
+    for _, player in pairs(game.connected_players) do
+        local light_data = TorchlightData.get_player_light_info(player.index)
+        if light_data.intensity_per_tick ~= 0 then
+            light_data.intensity = light_data.intensity + (light_data.intensity_per_tick * FADE_TICK_INTERVAL)
+
+            if light_data.intensity >= 1 then
+                light_data.intensity = 1
+                light_data.intensity_per_tick = 0
+            end
+
+            if light_data.intensity <= 0 then
+                light_data.intensity = 0
+                light_data.intensity_per_tick = 0
+            end
+
+            local enabled = TorchlightGui.is_light_enabled(player)
+            TorchlightLights.update_light(light_data, enabled)
+        end
+    end
+end
+
+function Torchlight.update_corpse_light_fades()
+    for corpse_id, light_data in pairs(TorchlightData.get_corpse_light_data()) do
+        if light_data.intensity_per_tick ~= 0 then
+            light_data.intensity = light_data.intensity + (light_data.intensity_per_tick * FADE_TICK_INTERVAL)
+
+            if light_data.intensity <= 0 then
+                TorchlightLights.destroy_lights(light_data.light_ids)
+                TorchlightData.remove_corpse_light_data(corpse_id)
+            end
+            TorchlightLights.update_light(light_data, true)
+        end
+    end
 end
 
 function Torchlight.on_torchlight_button_pressed(event)
     local player = event.player
+    local enabled = TorchlightGui.is_light_enabled(player)
+    local light_data = TorchlightData.get_player_light_info(player.index)
+    if enabled then
+        light_data.intensity_per_tick = 1 / FADE_IN_TICKS
+    else
+        light_data.intensity_per_tick = -1 / FADE_OUT_TICKS
+    end
+
     Torchlight.update_player_light(player)
 end
 
@@ -109,14 +171,23 @@ function Torchlight.on_torchlight_fuel_pressed(event)
     local inventory = TorchlightData.get_player_inventory(player.index)
     InventoryTransferUtil.handle_inventory_slot_click(inventory, inventory[1], event, { 'wood' })
     TorchlightGui.update_inventory_button(player, inventory)
+    Torchlight.update_player_light(player)
 end
 
 function Torchlight.create_or_restore_player_light(player)
     local light_data = TorchlightData.get_player_light_info(player.index)
 
     if not light_data then
-        local light_ids = Torchlight.create_light_ids(player.character, player.surface)
-        light_data = TorchlightData.create_player_light_data(light_ids)
+        local light_ids = TorchlightLights.create_light_ids(player.character, player.surface)
+        light_data = {
+            light_ids = light_ids,
+
+            light_ticks = 0,
+            light_ticks_total = 0,
+
+            intensity = 1,
+            intensity_per_tick = 0, -- positive number -> fade in, negative number -> fade out, 0 for idle
+        }
         TorchlightData.set_player_light_data(player.index, light_data)
         return
     end
@@ -137,49 +208,39 @@ function Torchlight.update_player_light(player)
 
     local light_data = TorchlightData.get_player_light_info(player.index)
     local inventory = TorchlightData.get_player_inventory(player.index)
-    local enabled = TorchlightGui.is_light_enabled(player)
+    local isEnabled = TorchlightGui.is_light_enabled(player)
 
-    -- the light is burning and has enough "fuel"
-    -- or player has deactivated the light, so we will not burn more wood
-    if light_data.remaining_ticks > AFTERBURNER_TICKS or not enabled then
-        TorchlightLights.update_light(light_data, light_data.remaining_ticks, AFTERBURNER_TICKS)
+    if not isEnabled then
         return
     end
 
-    local woodCount = inventory.get_item_count('wood')
+    if light_data.light_ticks >= light_data.light_ticks_total then
+        local item_stack = inventory[1]
+        if item_stack.count > 0 then
+            item_stack.count = item_stack.count - 1
+            light_data.light_ticks = 0
+            light_data.light_ticks_total = TICKS_PER_WOOD
+            light_data.intensity_per_tick = 1 / FADE_IN_TICKS
 
-    -- player has wood, so we can burn it
-    if woodCount > 0 then
-        inventory.remove({ name = 'wood', count = 1 })
-        light_data.remaining_ticks = TICKS_PER_WOOD + AFTERBURNER_TICKS
+            TorchlightGui.update_inventory_button(player, inventory)
+        else
+            light_data.light_ticks = 0
+            light_data.light_ticks_total = 0
+            light_data.intensity_per_tick = -1 / FADE_OUT_TICKS
+        end
     end
 
-    TorchlightLights.update_light(light_data, light_data.remaining_ticks, AFTERBURNER_TICKS)
-    TorchlightGui.update_inventory_button(player, inventory)
+    TorchlightLights.update_light(light_data, isEnabled)
 end
 
 function Torchlight.update_player_lights_on_tick()
     for _, player in pairs(game.connected_players) do
         local light_data = TorchlightData.get_player_light_info(player.index)
-        light_data.remaining_ticks = light_data.remaining_ticks - TICK_INTERVAL
-        if light_data.remaining_ticks <= 0 then
-            light_data.remaining_ticks = 0
-        end
-        Torchlight.update_player_light(player)
-        TorchlightGui.update_torchlight_progressbar(player, light_data.remaining_ticks, AFTERBURNER_TICKS, TICKS_PER_WOOD)
-
         local enabled = TorchlightGui.is_light_enabled(player)
-        -- player runs out of wood so we show a message
-        if enabled
-                and light_data.remaining_ticks > 0
-                and light_data.remaining_ticks < AFTERBURNER_TICKS
-                and light_data.remaining_ticks % 180 == 0 then
-            player.create_local_flying_text {
-                text = 'no more wood',
-                surface = player.surface,
-                position = player.character.position,
-                color = { 250, 0, 0 }
-            }
+        if enabled and light_data.light_ticks < light_data.light_ticks_total then
+            light_data.light_ticks = light_data.light_ticks + TICK_INTERVAL
+            Torchlight.update_player_light(player)
+            TorchlightGui.update_torchlight_progressbar(player, light_data.light_ticks, light_data.light_ticks_total)
         end
     end
 end
@@ -191,20 +252,19 @@ function Torchlight.update_corpse_light(corpse_id)
         return
     end
 
-    if light_data.remaining_ticks > 0 then
-        TorchlightLights.update_light(light_data, light_data.remaining_ticks, AFTERBURNER_TICKS)
+    if light_data.light_ticks < light_data.light_ticks_total then
+        TorchlightLights.update_light(light_data, true)
         return
     end
 
-    -- light burned out
-    TorchlightLights.destroy_lights(light_data.light_ids)
-    TorchlightData.remove_corpse_light_data(corpse_id)
+    -- light burned out -> start fade out
+    light_data.intensity_per_tick = -1 / FADE_OUT_TICKS
 end
 
 function Torchlight.update_corpse_lights_on_tick()
     local corpse_light_data = TorchlightData.get_corpse_light_data()
     for corpse_id, light_data in pairs(corpse_light_data) do
-        light_data.remaining_ticks = light_data.remaining_ticks - TICK_INTERVAL
+        light_data.light_ticks = light_data.light_ticks + TICK_INTERVAL
         Torchlight.update_corpse_light(corpse_id)
     end
 end
@@ -227,9 +287,9 @@ function Torchlight.takeover_remaining_torchlight_time(player, corpse)
         return
     end
 
-    player_light_data.remaining_ticks = player_light_data.remaining_ticks + corpse_light_data.remaining_ticks
+    player_light_data.light_ticks_total = corpse_light_data.light_ticks_total - corpse_light_data.light_ticks
     TorchlightData.remove_corpse_light_data(corpse_id)
-    TorchlightGui.update_torchlight_progressbar(player, player_light_data.remaining_ticks, AFTERBURNER_TICKS, TICKS_PER_WOOD)
+    TorchlightGui.update_torchlight_progressbar(player, player_light_data.light_ticks, player_light_data.light_ticks_total)
 end
 
 function Torchlight.on_player_mined_entity(event)
@@ -281,18 +341,6 @@ end
 
 function Torchlight.on_init()
     Torchlight.configure_wood_in_market()
-end
-
---- Creates light rendering IDs for a target entity
---- @param target LuaEntity to attach lights to
---- @param surface LuaSurface to render on
---- @return table array of light IDs {main_light_id, effect_light_1_id, effect_light_2_id}
-function Torchlight.create_light_ids(target, surface)
-    return {
-        TorchlightLights.create_main_light(target, surface).id,
-        TorchlightLights.create_effect_light_1(target, surface).id,
-        TorchlightLights.create_effect_light_2(target, surface).id
-    }
 end
 
 --- Restores missing light rendering objects from stored IDs
