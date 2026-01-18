@@ -20,7 +20,7 @@ function Torchlight.on_player_created(event)
 
     Torchlight.create_player_light_data(player)
     Torchlight.create_player_torchlight_inventory(player)
-    TorchlightGui.create_gui(player, true)
+    TorchlightGui.create_gui(player, true, Torchlight.get_allowed_item_names())
     Torchlight.update_player_light(player)
 end
 

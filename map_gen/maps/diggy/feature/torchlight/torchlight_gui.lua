@@ -57,8 +57,17 @@ function TorchlightGui.update_inventory_button(player, inventory)
     end
 end
 
+function TorchlightGui.build_tooltip(allowed_items)
+    local localized_tooltip = {'', {'description.accepted-fuel'}}
+    for index, item in pairs(allowed_items) do
+        localized_tooltip[2*index+1] = '\n - '
+        localized_tooltip[2*index+2] = {'item-name.'..item}
+    end
+    return localized_tooltip;
+end
+
 -- Creates the torchlight GUI frame and buttons for the player
-function TorchlightGui.create_gui(player, enabled)
+function TorchlightGui.create_gui(player, enabled, allowed_items)
     local frame = player.gui.screen.add { type = 'frame', name = frame_name, direction = 'vertical' }
     frame.style.padding = 1
 
@@ -76,7 +85,7 @@ function TorchlightGui.create_gui(player, enabled)
     inner_flow.style.vertical_spacing = 0
 
     local slot_button = inner_flow.add {
-        type = 'sprite-button', name = inventory_button_name, sprite = 'virtual-signal/signal-fire', style = 'tool_equip_ammo_slot'
+        type = 'sprite-button', name = inventory_button_name, sprite = 'virtual-signal/signal-fire', style = 'tool_equip_ammo_slot', tooltip = TorchlightGui.build_tooltip(allowed_items)
     }
     slot_button.style.width = BUTTON_SIZE
     slot_button.style.height = BUTTON_SIZE
