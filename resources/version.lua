@@ -1,1 +1,1 @@
-storage.redmew_version = nil
+storage.redmew_version = 'DieBohne\'s Diggy V1.0'
