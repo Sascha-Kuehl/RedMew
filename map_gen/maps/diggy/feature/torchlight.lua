@@ -333,6 +333,12 @@ function Torchlight.on_pre_player_mined_item(event)
     end
 end
 
+function Torchlight.on_player_controller_changed(event)
+    local player = game.get_player(event.player_index)
+    local is_in_character_view = player.controller_type == defines.controllers.character
+    TorchlightGui.set_visible(player, is_in_character_view)
+end
+
 function Torchlight.register(config)
     initial_items = config.initial_items
     burn_items = config.burn_items
@@ -347,6 +353,7 @@ function Torchlight.register(config)
     Event.add(defines.events.on_player_display_scale_changed, Torchlight.on_player_display_scale_changed)
     Event.add(defines.events.on_player_mined_entity, Torchlight.on_player_mined_entity)
     Event.add(defines.events.on_pre_player_mined_item, Torchlight.on_pre_player_mined_item)
+    Event.add(defines.events.on_player_controller_changed, Torchlight.on_player_controller_changed)
 
     TorchlightGui.register_click_handlers(Torchlight.on_torchlight_button_pressed, Torchlight.on_torchlight_fuel_pressed)
 end
