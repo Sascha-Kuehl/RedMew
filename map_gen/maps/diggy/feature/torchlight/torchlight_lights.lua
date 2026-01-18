@@ -94,28 +94,4 @@ function TorchlightLights.create_light_ids(target, surface)
     }
 end
 
---- Restores missing light rendering objects from stored IDs
---- @param light_data table containing light_ids array
---- @param target LuaEntity to attach lights to
---- @param surface LuaSurface to render on
-function TorchlightLights.restore_missing_lights(light_data, target, surface)
-    local main_light = rendering.get_object_by_id(light_data.light_ids[1])
-    if not main_light then
-        main_light = TorchlightLights.create_main_light(target, surface)
-        light_data.light_ids[1] = main_light.id
-    end
-
-    local effect_light_1 = rendering.get_object_by_id(light_data.light_ids[2])
-    if not effect_light_1 then
-        effect_light_1 = TorchlightLights.create_effect_light_1(target, surface)
-        light_data.light_ids[2] = effect_light_1.id
-    end
-
-    local effect_light_2 = rendering.get_object_by_id(light_data.light_ids[3])
-    if not effect_light_2 then
-        effect_light_2 = TorchlightLights.create_effect_light_2(target, surface)
-        light_data.light_ids[3] = effect_light_2.id
-    end
-end
-
 return TorchlightLights

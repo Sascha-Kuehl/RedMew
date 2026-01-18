@@ -17,7 +17,7 @@ function Torchlight.on_player_created(event)
     local player = game.get_player(event.player_index)
     player.disable_flashlight()
 
-    Torchlight.create_or_restore_player_light(player)
+    Torchlight.create_player_light_data(player)
     Torchlight.create_player_torchlight_inventory(player)
     TorchlightGui.create_gui(player, true)
     Torchlight.update_player_light(player)
@@ -27,7 +27,7 @@ function Torchlight.on_player_respawned(event)
     local player = game.get_player(event.player_index)
     player.disable_flashlight()
 
-    Torchlight.create_or_restore_player_light(player)
+    Torchlight.recreate_lights(player)
     Torchlight.update_player_light(player)
     TorchlightGui.set_visible(player, true)
 end
@@ -35,7 +35,7 @@ end
 function Torchlight.on_player_joined_game(event)
     local player = game.get_player(event.player_index)
 
-    Torchlight.create_or_restore_player_light(player)
+    Torchlight.recreate_lights(player)
     Torchlight.update_player_light(player)
 end
 
@@ -174,25 +174,18 @@ function Torchlight.on_torchlight_fuel_pressed(event)
     Torchlight.update_player_light(player)
 end
 
-function Torchlight.create_or_restore_player_light(player)
-    local light_data = TorchlightData.get_player_light_info(player.index)
+function Torchlight.create_player_light_data(player)
+    local light_ids = TorchlightLights.create_light_ids(player.character, player.surface)
+    local light_data = {
+        light_ids = light_ids,
 
-    if not light_data then
-        local light_ids = TorchlightLights.create_light_ids(player.character, player.surface)
-        light_data = {
-            light_ids = light_ids,
+        light_ticks = 0,
+        light_ticks_total = 0,
 
-            light_ticks = 0,
-            light_ticks_total = 0,
-
-            intensity = 1,
-            intensity_per_tick = 0, -- positive number -> fade in, negative number -> fade out, 0 for idle
-        }
-        TorchlightData.set_player_light_data(player.index, light_data)
-        return
-    end
-
-    Torchlight.restore_missing_lights(light_data, player.character, player.surface)
+        intensity = 0,
+        intensity_per_tick = 0, -- positive number -> fade in, negative number -> fade out, 0 for idle
+    }
+    TorchlightData.set_player_light_data(player.index, light_data)
 end
 
 function Torchlight.create_player_torchlight_inventory(player)
@@ -347,24 +340,9 @@ end
 --- @param light_data table containing light_ids array
 --- @param target LuaEntity to attach lights to
 --- @param surface LuaSurface to render on
-function Torchlight.restore_missing_lights(light_data, target, surface)
-    local main_light = rendering.get_object_by_id(light_data.light_ids[1])
-    if not main_light then
-        main_light = TorchlightLights.create_main_light(target, surface)
-        light_data.light_ids[1] = main_light.id
-    end
-
-    local effect_light_1 = rendering.get_object_by_id(light_data.light_ids[2])
-    if not effect_light_1 then
-        effect_light_1 = TorchlightLights.create_effect_light_1(target, surface)
-        light_data.light_ids[2] = effect_light_1.id
-    end
-
-    local effect_light_2 = rendering.get_object_by_id(light_data.light_ids[3])
-    if not effect_light_2 then
-        effect_light_2 = TorchlightLights.create_effect_light_2(target, surface)
-        light_data.light_ids[3] = effect_light_2.id
-    end
+function Torchlight.recreate_lights(player)
+    local light_data = TorchlightData.get_player_light_info(player.index)
+    light_data.light_ids = TorchlightLights.create_light_ids(player.character, player.surface)
 end
 
 return Torchlight
